@@ -13,7 +13,12 @@ use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::{Mutex, mpsc, oneshot};
 
-const PLUGIN_ENVELOPE_PREFIX_READ_TIMEOUT: Duration = Duration::from_secs(10);
+// TEMPORARY diagnostic bump (was 10s) — testing the hypothesis that an
+// "external relay" style plugin (whose real traffic bypasses this IPC
+// channel entirely via its own HTTP proxy) generates no application-level
+// traffic here and gets disconnected as falsely idle. Revert or replace with
+// a real host-initiated keepalive once confirmed.
+const PLUGIN_ENVELOPE_PREFIX_READ_TIMEOUT: Duration = Duration::from_secs(120);
 const PLUGIN_ENVELOPE_BODY_READ_TIMEOUT: Duration = Duration::from_secs(30);
 const PLUGIN_MESH_STREAM_RESPONSE_TIMEOUT: Duration =
     Duration::from_secs(super::REQUEST_TIMEOUT_SECS);
