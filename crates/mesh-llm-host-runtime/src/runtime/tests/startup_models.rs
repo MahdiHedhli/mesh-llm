@@ -1119,11 +1119,13 @@ fn pinned_gpu_startup_preflight_unresolvable_gpu_id_fails_closed() {
 fn test_should_show_serve_config_help_for_bare_serve_without_models() {
     let options = runtime_options_for_test(&["mesh-llm"]);
     let startup_specs = Vec::new();
+    let config = plugin::MeshConfig::default();
 
     assert!(should_show_serve_config_help(
         Some(RuntimeSurface::Serve),
         &options,
-        &startup_specs
+        &startup_specs,
+        &config
     ));
 }
 
@@ -1144,11 +1146,13 @@ fn test_should_not_show_serve_config_help_when_models_are_present() {
         flash_attention: FlashAttentionType::Auto,
         profile: String::new(),
     }];
+    let config = plugin::MeshConfig::default();
 
     assert!(!should_show_serve_config_help(
         Some(RuntimeSurface::Serve),
         &options,
-        &startup_specs
+        &startup_specs,
+        &config
     ));
 }
 
@@ -1156,11 +1160,13 @@ fn test_should_not_show_serve_config_help_when_models_are_present() {
 fn test_should_not_show_serve_config_help_for_client_surface() {
     let options = runtime_options_for_test(&["mesh-llm", "--client"]);
     let startup_specs = Vec::new();
+    let config = plugin::MeshConfig::default();
 
     assert!(!should_show_serve_config_help(
         Some(RuntimeSurface::Client),
         &options,
-        &startup_specs
+        &startup_specs,
+        &config
     ));
 }
 
@@ -1168,11 +1174,13 @@ fn test_should_not_show_serve_config_help_for_client_surface() {
 fn test_should_not_show_serve_config_help_for_auto_serve_without_models() {
     let options = runtime_options_for_test(&["mesh-llm", "--auto"]);
     let startup_specs = Vec::new();
+    let config = plugin::MeshConfig::default();
 
     assert!(!should_show_serve_config_help(
         Some(RuntimeSurface::Serve),
         &options,
-        &startup_specs
+        &startup_specs,
+        &config
     ));
 }
 
@@ -1180,11 +1188,65 @@ fn test_should_not_show_serve_config_help_for_auto_serve_without_models() {
 fn test_should_not_show_serve_config_help_for_join_serve_without_models() {
     let options = runtime_options_for_test(&["mesh-llm", "--join", "token"]);
     let startup_specs = Vec::new();
+    let config = plugin::MeshConfig::default();
 
     assert!(!should_show_serve_config_help(
         Some(RuntimeSurface::Serve),
         &options,
-        &startup_specs
+        &startup_specs,
+        &config
+    ));
+}
+
+#[test]
+fn test_should_not_show_serve_config_help_for_plugin_only_bare_serve() {
+    let options = runtime_options_for_test(&["mesh-llm"]);
+    let startup_specs = Vec::new();
+    let config = plugin::MeshConfig {
+        plugins: vec![plugin::PluginConfigEntry {
+            name: "openai-endpoint".to_string(),
+            enabled: None,
+            web_ui_enabled: None,
+            command: Some("/path/to/openai-endpoint".to_string()),
+            args: Vec::new(),
+            url: Some("https://example.internal/v1".to_string()),
+            settings: Default::default(),
+            startup: Default::default(),
+        }],
+        ..plugin::MeshConfig::default()
+    };
+
+    assert!(!should_show_serve_config_help(
+        Some(RuntimeSurface::Serve),
+        &options,
+        &startup_specs,
+        &config
+    ));
+}
+
+#[test]
+fn test_should_show_serve_config_help_when_plugin_explicitly_disabled() {
+    let options = runtime_options_for_test(&["mesh-llm"]);
+    let startup_specs = Vec::new();
+    let config = plugin::MeshConfig {
+        plugins: vec![plugin::PluginConfigEntry {
+            name: "openai-endpoint".to_string(),
+            enabled: Some(false),
+            web_ui_enabled: None,
+            command: Some("/path/to/openai-endpoint".to_string()),
+            args: Vec::new(),
+            url: Some("https://example.internal/v1".to_string()),
+            settings: Default::default(),
+            startup: Default::default(),
+        }],
+        ..plugin::MeshConfig::default()
+    };
+
+    assert!(should_show_serve_config_help(
+        Some(RuntimeSurface::Serve),
+        &options,
+        &startup_specs,
+        &config
     ));
 }
 

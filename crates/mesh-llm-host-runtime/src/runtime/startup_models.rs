@@ -420,7 +420,7 @@ pub(super) async fn prepare_runtime_startup(
             "--split-topology-lock requires exactly one startup model"
         );
     }
-    if should_show_serve_config_help(explicit_surface, options, &startup_specs) {
+    if should_show_serve_config_help(explicit_surface, options, &startup_specs, config) {
         let config_path = plugin::config_path(options.config.as_deref()).unwrap_or_else(|_| {
             dirs::home_dir()
                 .unwrap_or_else(|| PathBuf::from("~"))
@@ -895,10 +895,20 @@ pub(super) fn should_show_serve_config_help(
     explicit_surface: Option<RuntimeSurface>,
     options: &RuntimeOptions,
     startup_specs: &[StartupModelSpec],
+    config: &plugin::MeshConfig,
 ) -> bool {
+    // An enabled plugin (e.g. openai-endpoint relaying to an external
+    // OpenAI-compatible server) can serve inference models of its own
+    // without ever appearing in `startup_specs`, which only holds
+    // locally-served GGUF/native entries built from CLI/config `[[models]]`.
+    // Without this, `serve` with a plugin-only config and no local models
+    // incorrectly showed the "no models configured" help and exited without
+    // binding a server, even though the plugin has a model to advertise.
+    let has_enabled_plugin = config.plugins.iter().any(|plugin| plugin.enabled != Some(false));
     explicit_surface == Some(RuntimeSurface::Serve)
         && !options.client
         && startup_specs.is_empty()
+        && !has_enabled_plugin
         && !options.auto
         && options.join.is_empty()
         && options.discover.is_none()
